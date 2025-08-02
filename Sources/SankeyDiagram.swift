@@ -225,7 +225,7 @@ public struct SankeyDiagram: UIViewRepresentable {
 
     public class Coordinator: NSObject, WKScriptMessageHandler {
         public static let messageHandlerName = "sankeyNodeTapped"
-        let onNodeTap: ((String) -> Void)?
+        var onNodeTap: ((String) -> Void)?
 
         init(onNodeTap: ((String) -> Void)?) {
             self.onNodeTap = onNodeTap
