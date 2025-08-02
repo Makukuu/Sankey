@@ -43,19 +43,37 @@ public struct SankeyDiagram: UIViewRepresentable {
             userController.add(context.coordinator,
                                name: Coordinator.messageHandlerName)
 
-            let js = """
-            document.addEventListener('DOMContentLoaded', () => {
-              function hook() {
-                d3.selectAll('.node rect').on('click', (event, d) => {
-                  window.webkit.messageHandlers.\(Coordinator.messageHandlerName)
-                    .postMessage(d.id || d.name);
-                });
-              }
-              hook();
-              document.querySelector('svg')
-                .addEventListener('sankeyRebuilt', hook);
-            });
-            """
+            const js = """
+  document.addEventListener('DOMContentLoaded', () => {
+    function hookClickEvents() {
+      console.log('Hooking click events...');
+
+      // Add click events to node rectangles
+      d3.selectAll('.node rect')
+        .style('cursor', 'pointer')
+        .on('click', function(event, d) {
+          console.log('Node clicked:', d);
+          const nodeId = d.id || d.name;
+          console.log('Sending nodeId:', nodeId);
+          window.webkit.messageHandlers.\(Coordinator.messageHandlerName)
+            .postMessage(nodeId);
+        });
+
+      console.log('Found', d3.selectAll('.node rect').size(), 'clickable nodes');
+    }
+
+    // Try multiple times to ensure nodes are ready
+    setTimeout(hookClickEvents, 100);
+    setTimeout(hookClickEvents, 500);
+    setTimeout(hookClickEvents, 1000);
+
+    // Also hook on sankeyRebuilt event
+    const svg = document.querySelector('svg');
+    if (svg) {
+      svg.addEventListener('sankeyRebuilt', hookClickEvents);
+    }
+  });
+  """
             let script = WKUserScript(source: js,
                                       injectionTime: .atDocumentEnd,
                                       forMainFrameOnly: true)
