@@ -12,7 +12,7 @@ public struct SankeyDiagram: UIViewRepresentable {
     @Environment(\.colorScheme) private var colorScheme: ColorScheme
     public var data: SankeyData
     private var options = SankeyOptions()
-    fileprivate var onNodeTap: ((String) -> Void)?
+    let onNodeTap: ((String) -> Void)?
     
     public init(_ data: SankeyData) {
         self.data = data
