@@ -10,9 +10,11 @@ import WebKit
 
 public struct SankeyDiagram: UIViewRepresentable {
     @Environment(\.colorScheme) private var colorScheme: ColorScheme
+
     public var data: SankeyData
-    private var options = SankeyOptions()
-    // Make this a `var` so the modifier can assign to it:
+    /// Made `options` internal so extensions can access it
+    var options = SankeyOptions()
+    /// Made `onNodeTap` internal so our modifier and coordinator can talk
     var onNodeTap: ((String) -> Void)?
 
     public init(_ data: SankeyData) {
@@ -37,7 +39,7 @@ public struct SankeyDiagram: UIViewRepresentable {
         let userController = WKUserContentController()
 
         // 2) If a tap handler was provided, register the message handler & inject JS
-        if let _ = context.coordinator.onNodeTap {
+        if context.coordinator.onNodeTap != nil {
             userController.add(context.coordinator,
                                name: Coordinator.messageHandlerName)
 
