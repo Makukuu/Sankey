@@ -44,38 +44,60 @@ public struct SankeyDiagram: UIViewRepresentable {
                          name: Coordinator.messageHandlerName)
 
       let js = """
-      document.addEventListener('DOMContentLoaded', function() {
-        console.log('DOM loaded, setting up click handlers...');
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('DOM loaded, setting up click handlers...');
 
-        function hookClickEvents() {
-          console.log('Hooking click events...');
-
-          var nodes = d3.selectAll('.node rect');
-          console.log('Found nodes:', nodes.size());
-
-          nodes
-            .style('cursor', 'pointer')
-            .on('click', function(event, d) {
-              console.log('Node clicked:', d);
-              var nodeId = d.id || d.name;
-              console.log('Sending nodeId:', nodeId);
-              window.webkit.messageHandlers.\(Coordinator.messageHandlerName)
-                .postMessage(nodeId);
-            });
-
-          console.log('Click handlers attached to', nodes.size(), 'nodes');
-        }
-
-        setTimeout(hookClickEvents, 100);
-        setTimeout(hookClickEvents, 500);
-        setTimeout(hookClickEvents, 1000);
-
-        var svg = document.querySelector('svg');
-        if (svg) {
-          svg.addEventListener('sankeyRebuilt', hookClickEvents);
+  function hookClickEvents() {
+    console.log('Hooking click events...');
+    var nodes = d3.selectAll('.node rect');
+    console.log('Found nodes:', nodes.size());
+    if (nodes.size() === 0) {
+      console.log('No nodes found, check D3 rendering or DOM structure');
+    }
+    nodes.each(function(d) {
+      console.log('Node data:', JSON.stringify(d));
+    });
+    nodes
+      .style('cursor', 'pointer')
+      .on('click', function(event, d) {
+        console.log('Node clicked:', JSON.stringify(d));
+        var nodeId = d.id || d.name;
+        console.log('Sending nodeId:', nodeId);
+        try {
+          window.webkit.messageHandlers.\(Coordinator.messageHandlerName).postMessage(nodeId);
+          console.log('Message posted successfully');
+        } catch (e) {
+          console.log('Error posting message:', e);
         }
       });
-      """
+    console.log('Click handlers attached to', nodes.size(), 'nodes');
+  }
+
+  // Retry until nodes are found or timeout
+  let attempts = 0;
+  function tryHookClickEvents() {
+    hookClickEvents();
+    attempts++;
+    if (attempts < 10) {
+      setTimeout(tryHookClickEvents, 500);
+    } else {
+      console.log('Stopped retrying after 10 attempts');
+    }
+  }
+  tryHookClickEvents();
+
+  var svg = document.querySelector('svg');
+  if (svg) {
+    console.log('SVG found, attaching sankeyRebuilt listener');
+    svg.addEventListener('sankeyRebuilt', () => {
+      console.log('sankeyRebuilt event triggered');
+      hookClickEvents();
+    }, {once: true});
+  } else {    
+    console.log('SVG not found, check D3 rendering');
+  }
+});
+"""
 
       let script = WKUserScript(source: js,
                                 injectionTime: .atDocumentEnd,
