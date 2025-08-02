@@ -39,46 +39,49 @@ public struct SankeyDiagram: UIViewRepresentable {
         let userController = WKUserContentController()
 
         // 2) If a tap handler was provided, register the message handler & inject JS
-        if context.coordinator.onNodeTap != nil {
-            userController.add(context.coordinator,
-                               name: Coordinator.messageHandlerName)
+  if context.coordinator.onNodeTap != nil {
+      userController.add(context.coordinator,
+                         name: Coordinator.messageHandlerName)
 
-            const js = """
-  document.addEventListener('DOMContentLoaded', () => {
-    function hookClickEvents() {
-      console.log('Hooking click events...');
+      let js = """
+      document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOM loaded, setting up click handlers...');
 
-      // Add click events to node rectangles
-      d3.selectAll('.node rect')
-        .style('cursor', 'pointer')
-        .on('click', function(event, d) {
-          console.log('Node clicked:', d);
-          const nodeId = d.id || d.name;
-          console.log('Sending nodeId:', nodeId);
-          window.webkit.messageHandlers.\(Coordinator.messageHandlerName)
-            .postMessage(nodeId);
-        });
+        function hookClickEvents() {
+          console.log('Hooking click events...');
 
-      console.log('Found', d3.selectAll('.node rect').size(), 'clickable nodes');
-    }
+          var nodes = d3.selectAll('.node rect');
+          console.log('Found nodes:', nodes.size());
 
-    // Try multiple times to ensure nodes are ready
-    setTimeout(hookClickEvents, 100);
-    setTimeout(hookClickEvents, 500);
-    setTimeout(hookClickEvents, 1000);
+          nodes
+            .style('cursor', 'pointer')
+            .on('click', function(event, d) {
+              console.log('Node clicked:', d);
+              var nodeId = d.id || d.name;
+              console.log('Sending nodeId:', nodeId);
+              window.webkit.messageHandlers.\(Coordinator.messageHandlerName)
+                .postMessage(nodeId);
+            });
 
-    // Also hook on sankeyRebuilt event
-    const svg = document.querySelector('svg');
-    if (svg) {
-      svg.addEventListener('sankeyRebuilt', hookClickEvents);
-    }
-  });
-  """
-            let script = WKUserScript(source: js,
-                                      injectionTime: .atDocumentEnd,
-                                      forMainFrameOnly: true)
-            userController.addUserScript(script)
+          console.log('Click handlers attached to', nodes.size(), 'nodes');
         }
+
+        setTimeout(hookClickEvents, 100);
+        setTimeout(hookClickEvents, 500);
+        setTimeout(hookClickEvents, 1000);
+
+        var svg = document.querySelector('svg');
+        if (svg) {
+          svg.addEventListener('sankeyRebuilt', hookClickEvents);
+        }
+      });
+      """
+
+      let script = WKUserScript(source: js,
+                                injectionTime: .atDocumentEnd,
+                                forMainFrameOnly: true)
+      userController.addUserScript(script)
+  }
 
         // 3) Configure and create WKWebView
         let config = WKWebViewConfiguration()
